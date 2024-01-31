@@ -61,19 +61,20 @@ fn main() {
     let mut time_trace = Duration::new(0, 0);
     let mut time_judge = Duration::new(0, 0);
 
-    let n_loop = 5;
+    let n_loop = 1;
     for run_idx in 0..n_loop.clone() {
         let start_gsetup = Instant::now();
         let (N, d) = GSetup();
         let duration_gsetup = start_gsetup.elapsed();
         time_gsetup += duration_gsetup;
-        // println!("GSetup: {:?}", duration_gsetup);
 
         let start_gkgen = Instant::now();
+
+        // gpk = (N, d, pk_e, pk_s)
         let ((N, d, pk_e, pk_s), (mut u, mut w), sk_e, (sk_s, mut reg, mut merkle_tree, mut c)) = GKGen(N, d);
+        // println!("{:?}, {:?}, {:?}, {:?}", N, d, pk_e.serialize(), pk_s.to_encoded_point(false)); // size of gpk
         let duration_gkgen = start_gkgen.elapsed();
         time_gkgen += duration_gkgen;
-        // println!("GKGen: {:?}", duration_gkgen);
 
         // Create key for several users
         let mut gsk: Vec<(usize, VerifyingKey, SigningKey, Signature)> = Vec::new();
@@ -87,7 +88,6 @@ fn main() {
         }
         let duration_ukgen = start_ukgen.elapsed();
         time_ukgen += duration_ukgen;
-        // println!("UKGen (for 250 users): {:?}", duration_ukgen);
 
         // Test <Join, Issue>
         let start_joinissue = Instant::now();
@@ -96,7 +96,7 @@ fn main() {
         }
         let duration_joinissue = start_joinissue.elapsed();
         time_joinissue += duration_joinissue;
-        // println!("Join, Issue (for 250 users): {:?}", duration_joinissue);
+        // println!("{:?}", d + (gsk[0].1.to_encoded_point(false).len() + gsk[0].2.to_bytes().len()) * 8 + 4 * hex::encode(gsk[0].3).len());
         /*for i in 0..w.len() {
             println!("{:?}", w[i].clone());
         }*/
@@ -109,7 +109,7 @@ fn main() {
 
         // Test GUpdate
         let mut S: Vec<String> = Vec::new();
-        for i in 87..125 {
+        /*for i in 87..125 {
             S.push(hex::encode(gsk[i].1.to_encoded_point(false)));
         }
         for i in 142..196 {
@@ -117,17 +117,32 @@ fn main() {
         }
         for i in 221..229 {
             S.push(hex::encode(gsk[i].1.to_encoded_point(false)));
-        }
+        }*/
         // println!("- The number of revoked users: {}", S.len());
         let start_gupdate = Instant::now();
         GUpdate(N, d, &mut merkle_tree, S.clone(), (&mut u, &mut w));
         let duration_gupdate = start_gupdate.elapsed();
         time_gupdate += duration_gupdate;
-        // println!("GUpdate: {:?}", duration_gupdate);
+        /*let mut total_size = 0;
+        for i in 0..merkle_tree.len() {
+            total_size += 4 * merkle_tree[i].clone().len();
+        }
+        println!("{:?}", total_size);*/
         /*println!("{:?}", u);
+        let mut total_size = 256;
         for i in 0..w.len() {
-            println!("{:?}", w[i].clone());
-        }*/
+            total_size += w[i].0.clone().len();
+            for j in 0..w[i].1.clone().len() {
+                total_size += w[i].1[j].clone().len() * 4;
+            }
+            // println!("{:?}", w[i].clone());
+        }
+        println!("{:?}", total_size);*/
+        /*let mut total_size = 0;
+        for i in 0..w[0].1.clone().len() {
+            total_size += 4 * w[0].1[i].clone().len();
+        }
+        println!("{:?}", total_size);*/
 
         // Sign & Verify
         let idx_sign = 2;
